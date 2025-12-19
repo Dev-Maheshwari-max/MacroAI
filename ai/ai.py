@@ -1,31 +1,35 @@
-from flask import Flask, request, jsonify
-from transformers import GPT2LMHeadModel, GPT2Tokenizer
-import torch
+import json
+import sys
+from pathlib import Path
 
-app = Flask(__name__)
+MEMORY_FILE = Path(__file__).parent.parent / "memory.json"
 
-tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
-model = GPT2LMHeadModel.from_pretrained("gpt2")
+def load_memory():
+    if not MEMORY_FILE.exists():
+        return {}
+    return json.loads(MEMORY_FILE.read_text())
 
-@app.route("/generate", methods=["POST"])
-def generate():
-    data = request.json
-    prompt = data.get("prompt", "")
+def save_memory(memory):
+    MEMORY_FILE.write_text(json.dumps(memory, indent=2))
 
-    if not prompt:
-        return jsonify({"response": "Please ask something."})
+def generate_answer(question):
+    memory = load_memory()
 
-    inputs = tokenizer.encode(prompt, return_tensors="pt")
-    outputs = model.generate(
-        inputs,
-        max_length=150,
-        do_sample=True,
-        temperature=0.7,
-        top_p=0.9
+    # Reuse learned answer
+    if question in memory:
+        return memory[question]
+
+    # Basic AI response (can be upgraded later)
+    answer = (
+        "I am a general-purpose AI. "
+        "I learn from users over time.\n\n"
+        f"You asked: {question}"
     )
 
-    text = tokenizer.decode(outputs[0], skip_special_tokens=True)
-    return jsonify({"response": text})
+    memory[question] = answer
+    save_memory(memory)
+    return answer
 
 if __name__ == "__main__":
-    app.run(port=5000)
+    question = sys.argv[1]
+    print(generate_answer(question))

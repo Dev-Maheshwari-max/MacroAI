@@ -2,8 +2,10 @@ import json
 import sys
 import random
 from pathlib import Path
+import requests
 
 MEMORY_FILE = Path(__file__).parent.parent / "memory.json"
+SERPAPI_KEY = "YOUR_SERPAPI_KEY"  # Replace with your SerpAPI key
 
 def load_memory():
     if not MEMORY_FILE.exists():
@@ -16,6 +18,20 @@ def save_memory(memory):
 def is_greeting(text):
     greetings = ["hi", "hello", "hey", "hii", "hola"]
     return text.lower().strip() in greetings
+
+def search_internet(query):
+    url = f"https://serpapi.com/search.json?q={query}&api_key={SERPAPI_KEY}"
+    try:
+        response = requests.get(url, timeout=5)
+        data = response.json()
+        # Try to get first snippet from results
+        if "organic_results" in data and len(data["organic_results"]) > 0:
+            snippet = data["organic_results"][0].get("snippet")
+            if snippet:
+                return snippet
+    except Exception as e:
+        print("Search error:", e)
+    return None
 
 def generate_answer(question):
     memory = load_memory()
@@ -32,14 +48,19 @@ def generate_answer(question):
     if question in memory:
         return memory[question]
 
-    # Natural AI response
-    answer = (
-        "That's an interesting question.\n\n"
-        "I'm still learning, but here's my understanding:\n"
-        f"{question.capitalize()} is something worth exploring deeper."
-    )
+    # Try to get web answer
+    web_answer = search_internet(question)
+    if web_answer:
+        answer = f"From the web: {web_answer}"
+    else:
+        # Fallback
+        answer = (
+            "That's an interesting question.\n\n"
+            "I'm still learning, but here's my understanding:\n"
+            f"{question.capitalize()} is something worth exploring deeper."
+        )
 
-    # Learn from this interaction
+    # Save to memory
     memory[question] = answer
     save_memory(memory)
 

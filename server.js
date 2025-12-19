@@ -1,7 +1,7 @@
 /*****************************************************
- * Macro AI Server
+ * Macro AI Server with DeepSeek R1
  * Made by DEV & MANAN SULYA
- * Internet-powered AI (No API Key)
+ * Uses OpenRouter free API (deepseek/deepseek-r1:free)
  *****************************************************/
 
 const express = require("express");
@@ -28,49 +28,63 @@ function saveMemory(memory) {
   fs.writeFileSync(memoryFile, JSON.stringify(memory, null, 2));
 }
 
-/* ================= Internet Search ================= */
-async function searchInternet(query) {
-  const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(
-    query
-  )}&format=json&no_html=1&skip_disambig=1`;
+/* ================= DeepSeek R1 API ================= */
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+if (!OPENROUTER_API_KEY) {
+  console.error("⚠️ Please set OPENROUTER_API_KEY in your environment.");
+  process.exit(1);
+}
 
+async function askDeepSeek(question) {
   try {
-    const res = await fetch(url);
+    const res = await fetch("https://api.openrouter.ai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "deepseek/deepseek-r1:free",
+        messages: [{ role: "user", content: question }],
+      }),
+    });
+
     const data = await res.json();
-
-    if (data.AbstractText) return data.AbstractText;
-    if (data.Answer) return data.Answer;
-
-    return "I couldn't find a clear answer, but I'm learning.";
+    // OpenRouter returns choices array like OpenAI
+    if (data.choices && data.choices[0].message.content) {
+      return data.choices[0].message.content;
+    } else {
+      return "I couldn't get an answer from DeepSeek R1.";
+    }
   } catch (err) {
-    return "Error reaching the internet.";
+    console.error("DeepSeek R1 API error:", err.message);
+    return "Error reaching DeepSeek R1 API.";
   }
 }
 
 /* ================= AI Endpoint ================= */
 app.post("/ask", async (req, res) => {
   const { question } = req.body;
+
   if (!question) {
     return res.json({ answer: "Please ask a valid question." });
   }
 
   const memory = readMemory();
 
-  // Use memory if known
+  // Return from memory if known
   if (memory[question]) {
     return res.json({ answer: memory[question] });
   }
 
-  // Search internet
-  const internetAnswer = await searchInternet(question);
+  // Ask DeepSeek R1
+  const deepSeekAnswer = await askDeepSeek(question);
 
-  // Save learning
-  memory[question] = internetAnswer;
+  // Save answer in memory
+  memory[question] = deepSeekAnswer;
   saveMemory(memory);
 
-  res.json({
-    answer: internetAnswer,
-  });
+  res.json({ answer: deepSeekAnswer });
 });
 
 /* ================= Fix Render Not Found ================= */

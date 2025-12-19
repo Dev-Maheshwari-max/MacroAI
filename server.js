@@ -1,5 +1,5 @@
 /*****************************************************
- * Macro AI Server with DeepSeek R1
+ * Macro AI Server with DeepSeek R1 + Math Support
  * Made by DEV & MANAN SULYA
  * Uses OpenRouter free API (deepseek/deepseek-r1:free)
  *****************************************************/
@@ -71,6 +71,19 @@ app.post("/ask", async (req, res) => {
   // Return from memory if known
   if (memory[question]) {
     return res.json({ answer: memory[question] });
+  }
+
+  // Check for simple arithmetic
+  const arithmeticMatch = question.match(/^[0-9+\-*/ ().]+$/);
+  if (arithmeticMatch) {
+    try {
+      const answer = eval(question); // ⚠️ safe here because input is restricted
+      memory[question] = answer.toString();
+      saveMemory(memory);
+      return res.json({ answer: answer.toString() });
+    } catch (e) {
+      // fallback to DeepSeek
+    }
   }
 
   // Ask DeepSeek R1

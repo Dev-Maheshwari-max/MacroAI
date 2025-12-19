@@ -4,7 +4,6 @@ import torch
 
 app = Flask(__name__)
 
-# Load GPT-2 model
 tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
 model = GPT2LMHeadModel.from_pretrained("gpt2")
 
@@ -14,14 +13,15 @@ def generate():
     prompt = data.get("prompt", "")
 
     if not prompt:
-        return jsonify({"response": "Ask something."})
+        return jsonify({"response": "Please ask something."})
 
     inputs = tokenizer.encode(prompt, return_tensors="pt")
     outputs = model.generate(
         inputs,
         max_length=150,
         do_sample=True,
-        temperature=0.7
+        temperature=0.7,
+        top_p=0.9
     )
 
     text = tokenizer.decode(outputs[0], skip_special_tokens=True)

@@ -29,11 +29,8 @@ function saveMemory(memory) {
 }
 
 /* ================= DeepSeek R1 API ================= */
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-if (!OPENROUTER_API_KEY) {
-  console.error("⚠️ Please set OPENROUTER_API_KEY in your environment.");
-  process.exit(1);
-}
+// ⚠️ API key included directly for testing
+const OPENROUTER_API_KEY = "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";
 
 async function askDeepSeek(question) {
   try {
@@ -50,7 +47,6 @@ async function askDeepSeek(question) {
     });
 
     const data = await res.json();
-    // OpenRouter returns choices array like OpenAI
     if (data.choices && data.choices[0].message.content) {
       return data.choices[0].message.content;
     } else {

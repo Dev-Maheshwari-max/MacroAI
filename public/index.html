@@ -1,98 +1,62 @@
-/*****************************************************
- *  Macro AI Server
- *  Made by DEV & MANAN SULYA
- *
- *  This server:
- *  - Serves the frontend (index.html, CSS, JS)
- *  - Handles AI questions via /ask API
- *  - Stores basic learning memory in memory.json
- *****************************************************/
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Macro AI</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
 
-const express = require("express");
-const fs = require("fs");
-const path = require("path");
+<header>
+  <h1>🤖 Macro AI</h1>
+  <p>Server-Based Learning AI • Made by DEV & MANAN SULYA</p>
+</header>
 
-const app = express();
+<main id="chat"></main>
 
-// Render provides PORT automatically
-const PORT = process.env.PORT || 10000;
+<footer>
+  <select id="classLevel">
+    <option value="general">General</option>
+    <option value="1-5">Class 1–5</option>
+    <option value="6-8">Class 6–8</option>
+    <option value="9-10">Class 9–10</option>
+    <option value="11-12">Class 11–12</option>
+  </select>
 
-/* ================================
-   Middleware
-================================ */
+  <input id="question" placeholder="Ask Macro AI..." />
+  <button onclick="askAI()">Send</button>
+</footer>
 
-// Allows server to read JSON from requests
-app.use(express.json());
+<script>
+const chat = document.getElementById("chat");
 
-// ✅ VERY IMPORTANT
-// This makes index.html accessible at "/"
-app.use(express.static(path.join(__dirname, "public")));
+async function askAI() {
+  const input = document.getElementById("question");
+  const classLevel = document.getElementById("classLevel").value;
+  const question = input.value.trim();
+  if (!question) return;
 
-/* ================================
-   Simple Learning Memory System
-================================ */
+  chat.innerHTML += `<div class="msg user">You: ${question}</div>`;
+  input.value = "";
+  chat.scrollTop = chat.scrollHeight;
 
-const memoryFile = path.join(__dirname, "memory.json");
-
-// Read stored memory
-function readMemory() {
-  if (!fs.existsSync(memoryFile)) {
-    return {};
-  }
-  return JSON.parse(fs.readFileSync(memoryFile, "utf8"));
-}
-
-// Save memory back to file
-function saveMemory(memory) {
-  fs.writeFileSync(memoryFile, JSON.stringify(memory, null, 2));
-}
-
-/* ================================
-   AI Question Endpoint
-================================ */
-
-app.post("/ask", (req, res) => {
-  const { question, classLevel } = req.body;
-
-  if (!question) {
-    return res.json({
-      answer: "Please ask a valid question."
+  try {
+    const res = await fetch("/ask", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question, classLevel })
     });
+
+    const data = await res.json();
+    chat.innerHTML += `<div class="msg ai">Macro AI: ${data.answer}</div>`;
+    chat.scrollTop = chat.scrollHeight;
+
+  } catch {
+    chat.innerHTML += `<div class="msg ai error">Server error. Try again.</div>`;
   }
+}
+</script>
 
-  const memory = readMemory();
-
-  // If AI has seen this question before, reuse answer
-  if (memory[question]) {
-    return res.json({
-      answer: memory[question]
-    });
-  }
-
-  // New question → generate simple response
-  const answer =
-    `This is a class ${classLevel || "general"} level explanation of "${question}".`;
-
-  // Store learned response
-  memory[question] = answer;
-  saveMemory(memory);
-
-  res.json({ answer });
-});
-
-/* ================================
-   Fallback Route
-   (Fixes Render Not Found issue)
-================================ */
-
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
-
-/* ================================
-   Start Server
-================================ */
-
-app.listen(PORT, () => {
-  console.log("Macro AI Server running on port", PORT);
-});
+</body>
+</html>

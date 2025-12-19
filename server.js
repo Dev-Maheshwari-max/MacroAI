@@ -1,103 +1,98 @@
-/*
-  Macro AI Server
-  Made by DEV & MANAN SULYA
-
-  This server:
-  - Handles login
-  - Stores chat history
-  - Learns from questions
-  - Answers based on memory
-*/
+/*****************************************************
+ *  Macro AI Server
+ *  Made by DEV & MANAN SULYA
+ *
+ *  This server:
+ *  - Serves the frontend (index.html, CSS, JS)
+ *  - Handles AI questions via /ask API
+ *  - Stores basic learning memory in memory.json
+ *****************************************************/
 
 const express = require("express");
 const fs = require("fs");
-const cors = require("cors");
+const path = require("path");
 
 const app = express();
-const PORT = process.env.PORT || 3000;
 
-app.use(cors());
+// Render provides PORT automatically
+const PORT = process.env.PORT || 10000;
+
+/* ================================
+   Middleware
+================================ */
+
+// Allows server to read JSON from requests
 app.use(express.json());
-app.use(express.static("public"));
 
-/* ---------- LOAD MEMORY ---------- */
-function loadMemory() {
-  return JSON.parse(fs.readFileSync("memory.json", "utf-8"));
-}
+// ✅ VERY IMPORTANT
+// This makes index.html accessible at "/"
+app.use(express.static(path.join(__dirname, "public")));
 
-function saveMemory(data) {
-  fs.writeFileSync("memory.json", JSON.stringify(data, null, 2));
-}
+/* ================================
+   Simple Learning Memory System
+================================ */
 
-/* ---------- UTILITIES ---------- */
-function normalize(text) {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9 ]/g, "")
-    .trim();
-}
+const memoryFile = path.join(__dirname, "memory.json");
 
-/* ---------- LOGIN ---------- */
-app.post("/login", (req, res) => {
-  const { username } = req.body;
-  const memory = loadMemory();
-
-  if (!memory.users[username]) {
-    memory.users[username] = {
-      chats: []
-    };
-    saveMemory(memory);
+// Read stored memory
+function readMemory() {
+  if (!fs.existsSync(memoryFile)) {
+    return {};
   }
+  return JSON.parse(fs.readFileSync(memoryFile, "utf8"));
+}
 
-  res.json({ success: true });
-});
+// Save memory back to file
+function saveMemory(memory) {
+  fs.writeFileSync(memoryFile, JSON.stringify(memory, null, 2));
+}
 
-/* ---------- ASK AI ---------- */
+/* ================================
+   AI Question Endpoint
+================================ */
+
 app.post("/ask", (req, res) => {
-  const { username, question, classLevel } = req.body;
-  const memory = loadMemory();
+  const { question, classLevel } = req.body;
 
-  const cleanQ = normalize(question);
-
-  let answer;
-
-  // If AI already learned this question
-  if (memory.knowledge[cleanQ]) {
-    answer = memory.knowledge[cleanQ];
-  } else {
-    // Basic intelligence fallback
-    answer =
-      `I am Macro AI. Based on class ${classLevel}, ` +
-      `this topic relates to "${question}". ` +
-      `I will remember this and improve over time.`;
-
-    // Learn new answer
-    memory.knowledge[cleanQ] = answer;
+  if (!question) {
+    return res.json({
+      answer: "Please ask a valid question."
+    });
   }
 
-  // Save chat history
-  memory.users[username].chats.push({
-    question,
-    answer,
-    time: new Date().toISOString()
-  });
+  const memory = readMemory();
 
+  // If AI has seen this question before, reuse answer
+  if (memory[question]) {
+    return res.json({
+      answer: memory[question]
+    });
+  }
+
+  // New question → generate simple response
+  const answer =
+    `This is a class ${classLevel || "general"} level explanation of "${question}".`;
+
+  // Store learned response
+  memory[question] = answer;
   saveMemory(memory);
 
   res.json({ answer });
 });
 
-/* ---------- CHAT HISTORY ---------- */
-app.post("/history", (req, res) => {
-  const { username } = req.body;
-  const memory = loadMemory();
+/* ================================
+   Fallback Route
+   (Fixes Render Not Found issue)
+================================ */
 
-  res.json({
-    chats: memory.users[username]?.chats || []
-  });
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-/* ---------- START SERVER ---------- */
+/* ================================
+   Start Server
+================================ */
+
 app.listen(PORT, () => {
-  console.log("Macro AI Server running on port " + PORT);
+  console.log("Macro AI Server running on port", PORT);
 });

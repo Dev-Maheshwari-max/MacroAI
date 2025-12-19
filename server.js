@@ -1,36 +1,19 @@
-const express = require("express");
+const { execFile } = require("child_process");
 const path = require("path");
-const { exec } = require("child_process");
 
-const app = express();
-const PORT = process.env.PORT || 10000;
-
-// Middleware
-app.use(express.json());
-app.use(express.static(path.join(__dirname, "public")));
-
-// AI endpoint
 app.post("/ask", (req, res) => {
-  const question = req.body.question;
-  if (!question) {
-    return res.json({ answer: "Please ask a question." });
-  }
+  const { question, classLevel } = req.body;
+  if (!question) return res.json({ answer: "Please ask a valid question." });
 
-  // Call Python AI
-  exec(`python3 ai/ai.py "${question.replace(/"/g, "")}"`, (error, stdout) => {
-    if (error) {
-      console.error(error);
-      return res.json({ answer: "AI failed to respond." });
+  const aiScript = path.join(__dirname, "ai", "ai.py");
+
+  execFile("python3", [aiScript, question], (err, stdout, stderr) => {
+    if (err) {
+      console.error(err);
+      return res.json({ answer: "Error processing the question." });
     }
-    res.json({ answer: stdout.trim() });
+
+    const answer = stdout.toString().trim();
+    res.json({ answer });
   });
-});
-
-// Fallback for Render (IMPORTANT)
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
-
-app.listen(PORT, () => {
-  console.log("Macro AI Server running on port", PORT);
 });

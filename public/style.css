@@ -1,43 +1,29 @@
-* {
-  box-sizing: border-box;
-}
-
 body {
   margin: 0;
-  font-family: system-ui, Arial, sans-serif;
+  font-family: Arial, sans-serif;
   background: #0f172a;
-  color: #e5e7eb;
+  color: white;
   display: flex;
   flex-direction: column;
   height: 100vh;
 }
 
 header {
-  padding: 14px;
+  padding: 15px;
   background: #020617;
   text-align: center;
-  border-bottom: 1px solid #1e293b;
+  font-size: 20px;
+  font-weight: bold;
 }
 
-header h1 {
-  margin: 0;
-  font-size: 22px;
-}
-
-header p {
-  margin: 4px 0 0;
-  font-size: 13px;
-  color: #94a3b8;
-}
-
-main {
+#chat {
   flex: 1;
-  padding: 16px;
+  padding: 15px;
   overflow-y: auto;
 }
 
 .msg {
-  margin-bottom: 14px;
+  margin-bottom: 12px;
   line-height: 1.6;
 }
 
@@ -49,40 +35,25 @@ main {
   color: #a7f3d0;
 }
 
-.error {
-  color: #f87171;
-}
-
 footer {
   display: flex;
-  gap: 8px;
-  padding: 12px;
-  background: #020617;
-  border-top: 1px solid #1e293b;
-}
-
-select, input {
-  background: #020617;
-  color: white;
-  border: 1px solid #1e293b;
-  border-radius: 6px;
   padding: 10px;
-  font-size: 14px;
+  background: #020617;
 }
 
 input {
   flex: 1;
+  padding: 10px;
+  border-radius: 6px;
+  border: none;
+  outline: none;
 }
 
 button {
-  background: #38bdf8;
+  margin-left: 10px;
+  padding: 10px 15px;
   border: none;
   border-radius: 6px;
-  padding: 10px 16px;
+  background: #38bdf8;
   cursor: pointer;
-  font-weight: bold;
-}
-
-button:hover {
-  opacity: 0.9;
 }

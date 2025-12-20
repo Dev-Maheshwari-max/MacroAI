@@ -1,20 +1,21 @@
 /*****************************************************
- * Macro AI Server with DeepSeek R1 + Math Support
- * Made by DEV & MANAN SULYA
- * Uses OpenRouter free API (deepseek/deepseek-r1:free)
+ * Macro AI Server
+ * Internet + Memory AI (NO API KEYS)
  *****************************************************/
 
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
+const fetch = require("node-fetch");
+
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-/* ================= Middleware ================= */
+/* ========== Middleware ========== */
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-/* ================= Memory System ================= */
+/* ========== Memory System ========== */
 const memoryFile = path.join(__dirname, "memory.json");
 
 function readMemory() {
@@ -26,80 +27,55 @@ function saveMemory(memory) {
   fs.writeFileSync(memoryFile, JSON.stringify(memory, null, 2));
 }
 
-/* ================= DeepSeek R1 API ================= */
-// ⚠️ API key included directly for testing
-const OPENROUTER_API_KEY = "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";
+/* ========== Internet Search (FREE) ========== */
+async function searchInternet(question) {
+  const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(
+    question
+  )}&format=json&no_html=1&skip_disambig=1`;
 
-async function askDeepSeek(question) {
   try {
-    const res = await fetch("https://api.openrouter.ai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "deepseek/deepseek-r1:free",
-        messages: [{ role: "user", content: question }],
-      }),
-    });
+    const response = await fetch(url);
+    const data = await response.json();
 
-    const data = await res.json();
-    if (data.choices && data.choices[0].message.content) {
-      return data.choices[0].message.content;
-    } else {
-      return "I couldn't get an answer from DeepSeek R1.";
-    }
-  } catch (err) {
-    console.error("DeepSeek R1 API error:", err.message);
-    return "Error reaching DeepSeek R1 API.";
+    if (data.AbstractText) return data.AbstractText;
+    if (data.Answer) return data.Answer;
+
+    return `I found information about "${question}", but no direct summary yet.`;
+  } catch (error) {
+    return "I couldn't reach the internet right now.";
   }
 }
 
-/* ================= AI Endpoint ================= */
+/* ========== AI Endpoint ========== */
 app.post("/ask", async (req, res) => {
   const { question } = req.body;
-
   if (!question) {
-    return res.json({ answer: "Please ask a valid question." });
+    return res.json({ answer: "Ask me something 🙂" });
   }
 
   const memory = readMemory();
 
-  // Return from memory if known
+  // Use memory if known
   if (memory[question]) {
     return res.json({ answer: memory[question] });
   }
 
-  // Check for simple arithmetic
-  const arithmeticMatch = question.match(/^[0-9+\-*/ ().]+$/);
-  if (arithmeticMatch) {
-    try {
-      const answer = eval(question); // ⚠️ safe here because input is restricted
-      memory[question] = answer.toString();
-      saveMemory(memory);
-      return res.json({ answer: answer.toString() });
-    } catch (e) {
-      // fallback to DeepSeek
-    }
-  }
+  // Search internet
+  const answer = await searchInternet(question);
 
-  // Ask DeepSeek R1
-  const deepSeekAnswer = await askDeepSeek(question);
-
-  // Save answer in memory
-  memory[question] = deepSeekAnswer;
+  // Learn
+  memory[question] = answer;
   saveMemory(memory);
 
-  res.json({ answer: deepSeekAnswer });
+  res.json({ answer });
 });
 
-/* ================= Fix Render Not Found ================= */
+/* ========== Render Fix ========== */
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-/* ================= Start Server ================= */
+/* ========== Start Server ========== */
 app.listen(PORT, () => {
-  console.log("Macro AI Server running on port", PORT);
+  console.log("Macro AI running on port", PORT);
 });

@@ -4,20 +4,95 @@
   <meta charset="UTF-8">
   <title>MacroAI Chat</title>
   <style>
-    body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
-    #chatBox { width: 100%; height: 400px; border: 1px solid #ccc; padding: 10px; overflow-y: auto; background: #fff; }
-    #userInput { width: 80%; padding: 10px; }
-    #sendBtn { padding: 10px; }
-    .message { margin: 5px 0; }
-    .user { color: blue; }
-    .ai { color: green; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f0f2f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .chat-container {
+      width: 400px;
+      max-width: 90%;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #chatBox {
+      flex: 1;
+      padding: 15px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .message {
+      padding: 10px 15px;
+      border-radius: 20px;
+      max-width: 80%;
+      word-wrap: break-word;
+    }
+
+    .user {
+      background-color: #007bff;
+      color: white;
+      align-self: flex-end;
+    }
+
+    .ai {
+      background-color: #e5e5ea;
+      color: black;
+      align-self: flex-start;
+    }
+
+    .input-area {
+      display: flex;
+      padding: 10px;
+      border-top: 1px solid #ccc;
+    }
+
+    #userInput {
+      flex: 1;
+      padding: 10px 15px;
+      border-radius: 20px;
+      border: 1px solid #ccc;
+      outline: none;
+      font-size: 16px;
+    }
+
+    #sendBtn {
+      margin-left: 10px;
+      padding: 10px 20px;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background 0.3s;
+    }
+
+    #sendBtn:hover {
+      background: #0056b3;
+    }
   </style>
 </head>
 <body>
-  <h1>MacroAI Chat</h1>
-  <div id="chatBox"></div>
-  <input type="text" id="userInput" placeholder="Type your message here..." />
-  <button id="sendBtn">Send</button>
+  <div class="chat-container">
+    <div id="chatBox"></div>
+    <div class="input-area">
+      <input type="text" id="userInput" placeholder="Type your message..." />
+      <button id="sendBtn">Send</button>
+    </div>
+  </div>
 
   <script>
     const chatBox = document.getElementById("chatBox");
@@ -35,7 +110,7 @@
     async function sendMessage() {
       const message = userInput.value.trim();
       if (!message) return;
-      appendMessage("user", "You: " + message);
+      appendMessage("user", message);
       userInput.value = "";
 
       try {
@@ -45,9 +120,9 @@
           body: JSON.stringify({ message })
         });
         const data = await res.json();
-        appendMessage("ai", "MacroAI: " + data.reply);
+        appendMessage("ai", data.reply);
       } catch (err) {
-        appendMessage("ai", "MacroAI: Error contacting server.");
+        appendMessage("ai", "Error contacting server.");
       }
     }
 

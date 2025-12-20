@@ -1,6 +1,5 @@
 async function ask() {
   const input = document.getElementById("q");
-  const chat = document.getElementById("chat");
   const question = input.value.trim();
   if (!question) return;
 
@@ -15,5 +14,4 @@ async function ask() {
 
   const data = await res.json();
   chat.innerHTML += `<div class="msg ai">Macro AI: ${data.answer}</div>`;
-  chat.scrollTop = chat.scrollHeight;
 }

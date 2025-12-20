@@ -5,7 +5,6 @@ import axios from "axios";
 import path from "path";
 import { fileURLToPath } from "url";
 
-// Setup __dirname for ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -20,7 +19,6 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public/index.html"));
 });
 
-// Chat endpoint fetching from Wikipedia
 app.post("/api/chat", async (req, res) => {
   const { message } = req.body;
 
@@ -29,10 +27,15 @@ app.post("/api/chat", async (req, res) => {
   }
 
   try {
-    const query = encodeURIComponent(message);
-    const wikiUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${query}`;
+    // Clean the query
+    const cleanQuery = message
+      .trim()
+      .replace(/\s+/g, "_")      // Replace spaces with underscores for Wikipedia
+      .replace(/[^a-zA-Z0-9_]/g, ""); // Remove special characters
 
-    const response = await axios.get(wikiUrl);
+    const wikiUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(cleanQuery)}`;
+
+    const response = await axios.get(wikiUrl, { timeout: 5000 }); // Add timeout
     const data = response.data;
 
     let reply;
@@ -40,12 +43,13 @@ app.post("/api/chat", async (req, res) => {
     if (data.extract) {
       reply = data.extract;
     } else {
-      reply = "I couldn't find information on that topic. Could you please rephrase your question?";
+      reply =
+        "I couldn't find information on that topic. Please try a slightly different query.";
     }
 
     res.json({ reply });
   } catch (error) {
-    console.error(error);
+    console.error(error.message);
     res.json({
       reply:
         "I encountered an error while fetching information. Please try again with a different query.",

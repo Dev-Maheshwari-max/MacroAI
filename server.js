@@ -1,6 +1,7 @@
 // server.js
 import express from "express";
 import cors from "cors";
+import axios from "axios";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -11,13 +12,8 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Enable CORS so frontend can call the API
 app.use(cors());
-
-// Parse JSON bodies
 app.use(express.json());
-
-// Serve static files from "public" folder
 app.use(express.static(path.join(__dirname, "public")));
 
 // Root route
@@ -26,37 +22,38 @@ app.get("/", (req, res) => {
 });
 
 // Chat endpoint
-app.post("/api/chat", (req, res) => {
+app.post("/api/chat", async (req, res) => {
   const { message } = req.body;
 
   if (!message || message.trim() === "") {
     return res.status(400).json({ error: "Message is required" });
   }
 
-  const lowerMessage = message.toLowerCase();
-  let reply;
+  try {
+    const query = encodeURIComponent(message);
+    const wikiUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${query}`;
 
-  // Professional AI-like responses
-  if (lowerMessage.includes("elon musk")) {
-    reply =
-      "Elon Musk is a technology entrepreneur, engineer, and investor. He is the CEO of SpaceX and Tesla, and is known for his work in space exploration, electric vehicles, and renewable energy.";
-  } else if (lowerMessage.includes("who are you")) {
-    reply =
-      "I am MacroAI, your professional AI assistant designed to provide accurate and clear information.";
-  } else if (lowerMessage.includes("hello") || lowerMessage.includes("hi")) {
-    reply = "Hello! How can I assist you today?";
-  } else if (lowerMessage.includes("help")) {
-    reply =
-      "You can ask me questions about technology, famous personalities, or general knowledge, and I will provide professional responses.";
-  } else {
-    reply =
-      "I’m here to help! Could you please provide more details or ask a specific question?";
+    const response = await axios.get(wikiUrl);
+    const data = response.data;
+
+    let reply;
+
+    if (data.extract) {
+      reply = data.extract;
+    } else {
+      reply = "I couldn't find information on that topic. Could you please rephrase your question?";
+    }
+
+    res.json({ reply });
+  } catch (error) {
+    console.error(error);
+    res.json({
+      reply:
+        "I encountered an error while fetching information. Please try again with a different query.",
+    });
   }
-
-  res.json({ reply });
 });
 
-// Start the server
 app.listen(PORT, () => {
   console.log(`MacroAI server is running on port ${PORT}`);
 });

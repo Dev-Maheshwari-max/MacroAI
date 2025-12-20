@@ -19,10 +19,10 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public/index.html"));
 });
 
-// Your fresh Deepseek API key
+// ⚠️ Insert your Deepseek API key here
 const DEEPSEEK_API_KEY = "sk-818d8641b7b54cbc97980b3935ce100f";
 
-// POST /api/chat endpoint
+// ⚡ Chat endpoint
 app.post("/api/chat", async (req, res) => {
   const { message } = req.body;
 
@@ -31,19 +31,28 @@ app.post("/api/chat", async (req, res) => {
   }
 
   try {
-    // Call Deepseek API
-    const response = await axios.post(
-      "https://api.deepseek.ai/v1/query", // Make sure this is the correct endpoint for your key
-      { query: message },
-      {
+    // 1️⃣ First try payload with "query"
+    let payload = { query: message };
+    let endpoint = "https://api.deepseek.ai/v1/query"; // Confirm this endpoint in your Deepseek dashboard
+
+    let response = await axios.post(endpoint, payload, {
+      headers: {
+        "Authorization": `Bearer ${DEEPSEEK_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    // 2️⃣ If response is empty, try "question" key
+    if (!response.data.answer) {
+      payload = { question: message };
+      response = await axios.post(endpoint, payload, {
         headers: {
           "Authorization": `Bearer ${DEEPSEEK_API_KEY}`,
           "Content-Type": "application/json",
         },
-      }
-    );
+      });
+    }
 
-    // Assuming Deepseek returns JSON like: { answer: "..." }
     const reply = response.data.answer || "I couldn't find an answer to that question.";
 
     res.json({ reply });
@@ -55,7 +64,8 @@ app.post("/api/chat", async (req, res) => {
       console.error("Data:", err.response.data);
     }
     res.json({
-      reply: "I encountered an error while fetching information from Deepseek. Please try again."
+      reply:
+        "I encountered an error while fetching information from Deepseek. Please check your API key and endpoint."
     });
   }
 });

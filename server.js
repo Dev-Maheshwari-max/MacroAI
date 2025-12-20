@@ -1,21 +1,21 @@
 /*****************************************************
  * Macro AI Server
  * Internet + Memory AI (NO API KEYS)
+ * Made by DEV & MANAN SULYA
  *****************************************************/
 
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
-const fetch = require("node-fetch");
 
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-/* ========== Middleware ========== */
+/* ================= Middleware ================= */
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-/* ========== Memory System ========== */
+/* ================= Memory System ================= */
 const memoryFile = path.join(__dirname, "memory.json");
 
 function readMemory() {
@@ -27,35 +27,36 @@ function saveMemory(memory) {
   fs.writeFileSync(memoryFile, JSON.stringify(memory, null, 2));
 }
 
-/* ========== Internet Search (FREE) ========== */
+/* ================= Free Internet Search ================= */
 async function searchInternet(question) {
   const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(
     question
   )}&format=json&no_html=1&skip_disambig=1`;
 
   try {
-    const response = await fetch(url);
+    const response = await fetch(url); // ✅ Native fetch (Node 22)
     const data = await response.json();
 
     if (data.AbstractText) return data.AbstractText;
     if (data.Answer) return data.Answer;
 
-    return `I found information about "${question}", but no direct summary yet.`;
-  } catch (error) {
-    return "I couldn't reach the internet right now.";
+    return `I found information related to "${question}", but no short summary was available.`;
+  } catch (err) {
+    return "I couldn't access the internet right now.";
   }
 }
 
-/* ========== AI Endpoint ========== */
+/* ================= AI Endpoint ================= */
 app.post("/ask", async (req, res) => {
   const { question } = req.body;
+
   if (!question) {
-    return res.json({ answer: "Ask me something 🙂" });
+    return res.json({ answer: "Please ask something 🙂" });
   }
 
   const memory = readMemory();
 
-  // Use memory if known
+  // Use learned memory
   if (memory[question]) {
     return res.json({ answer: memory[question] });
   }
@@ -70,12 +71,12 @@ app.post("/ask", async (req, res) => {
   res.json({ answer });
 });
 
-/* ========== Render Fix ========== */
+/* ================= Render Fix ================= */
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-/* ========== Start Server ========== */
+/* ================= Start Server ================= */
 app.listen(PORT, () => {
-  console.log("Macro AI running on port", PORT);
+  console.log("Macro AI Server running on port", PORT);
 });

@@ -1,5 +1,6 @@
 // server.js
 import express from "express";
+import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -10,18 +11,21 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware to parse JSON requests
+// Enable CORS so frontend can call API
+app.use(cors());
+
+// Middleware to parse JSON
 app.use(express.json());
 
-// Serve static files if needed
+// Serve static files (optional)
 app.use(express.static(path.join(__dirname, "public")));
 
-// Basic route
+// Root route
 app.get("/", (req, res) => {
   res.send("Welcome to MacroAI! Your professional AI assistant is running.");
 });
 
-// AI chat endpoint
+// Chat endpoint
 app.post("/api/chat", (req, res) => {
   const { message } = req.body;
 
@@ -29,22 +33,20 @@ app.post("/api/chat", (req, res) => {
     return res.status(400).json({ error: "Message is required" });
   }
 
-  // Simple professional responses (you can expand this later)
-  let response;
-
   const lowerMessage = message.toLowerCase();
+  let reply;
 
   if (lowerMessage.includes("elon musk")) {
-    response = "Elon Musk is a technology entrepreneur, investor, and engineer. He is the CEO of SpaceX and Tesla, and is known for his work in advancing electric vehicles, space exploration, and renewable energy.";
+    reply = "Elon Musk is a technology entrepreneur, engineer, and investor. He is the CEO of SpaceX and Tesla, and is known for his work in space exploration, electric vehicles, and renewable energy.";
   } else if (lowerMessage.includes("who are you")) {
-    response = "I am MacroAI, your professional AI assistant designed to provide accurate and clear information.";
+    reply = "I am MacroAI, your professional AI assistant designed to provide accurate and clear information.";
   } else if (lowerMessage.includes("hello") || lowerMessage.includes("hi")) {
-    response = "Hello! How can I assist you today?";
+    reply = "Hello! How can I assist you today?";
   } else {
-    response = "I’m here to help! Could you please provide more details or ask a specific question?";
+    reply = "I’m here to help! Could you please provide more details or ask a specific question?";
   }
 
-  res.json({ reply: response });
+  res.json({ reply });
 });
 
 // Start server

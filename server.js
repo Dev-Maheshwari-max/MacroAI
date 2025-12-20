@@ -1,7 +1,7 @@
 /*****************************************************
  * Macro AI Server
  * Made by DEV & MANAN SULYA
- * General-Purpose AI with Memory + Web Search
+ * Internet-powered learning AI
  *****************************************************/
 
 const express = require("express");
@@ -11,11 +11,11 @@ const path = require("path");
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-/* ================= Middleware ================= */
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-/* ================= Memory System ================= */
+/* ================= MEMORY ================= */
+
 const memoryFile = path.join(__dirname, "memory.json");
 
 function readMemory() {
@@ -23,66 +23,68 @@ function readMemory() {
   return JSON.parse(fs.readFileSync(memoryFile, "utf8"));
 }
 
-function saveMemory(memory) {
-  fs.writeFileSync(memoryFile, JSON.stringify(memory, null, 2));
+function saveMemory(mem) {
+  fs.writeFileSync(memoryFile, JSON.stringify(mem, null, 2));
 }
 
-/* ================= AI Logic ================= */
-async function webSearch(query) {
+/* ================= WIKIPEDIA SEARCH ================= */
+
+async function searchWikipedia(query) {
+  const url =
+    "https://en.wikipedia.org/api/rest_v1/page/summary/" +
+    encodeURIComponent(query);
+
   try {
-    const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(
-      query
-    )}&format=json&no_html=1`;
-
     const res = await fetch(url);
-    const data = await res.json();
+    if (!res.ok) return null;
 
-    return (
-      data.AbstractText ||
-      data.Heading ||
-      "I searched the web but couldn't find a clear answer."
-    );
-  } catch (err) {
-    return "Web search failed.";
+    const data = await res.json();
+    if (data.extract) return data.extract;
+    return null;
+  } catch {
+    return null;
   }
 }
 
-/* ================= API ================= */
+/* ================= AI ENDPOINT ================= */
+
 app.post("/ask", async (req, res) => {
-  const { question } = req.body;
+  const question = req.body.question?.toLowerCase();
   if (!question) {
-    return res.json({ answer: "Please ask something." });
+    return res.json({ answer: "Ask something valid." });
   }
 
   const memory = readMemory();
 
-  // If already learned
+  // 1️⃣ Memory check
   if (memory[question]) {
-    return res.json({
-      answer: memory[question] + " (from memory)"
-    });
+    return res.json({ answer: memory[question] });
   }
 
-  // Search web
-  const webAnswer = await webSearch(question);
+  // 2️⃣ Internet search
+  const wikiAnswer = await searchWikipedia(question);
 
-  const finalAnswer =
-    webAnswer ||
-    `I am learning. I don't know much yet about "${question}".`;
+  if (wikiAnswer) {
+    memory[question] = wikiAnswer;
+    saveMemory(memory);
+    return res.json({ answer: wikiAnswer });
+  }
 
-  // Save learning
-  memory[question] = finalAnswer;
-  saveMemory(memory);
+  // 3️⃣ Fallback
+  const fallback =
+    "I couldn't find a reliable answer yet. Try rephrasing the question.";
 
-  res.json({ answer: finalAnswer });
+  return res.json({ answer: fallback });
 });
 
-/* ================= Fallback ================= */
+/* ================= FALLBACK ================= */
+
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-/* ================= Start ================= */
+/* ================= START ================= */
+
 app.listen(PORT, () => {
   console.log("Macro AI running on port", PORT);
 });

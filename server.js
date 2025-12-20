@@ -1,7 +1,7 @@
 /*****************************************************
  * Macro AI Server
- * Internet + Memory AI (NO API KEYS)
  * Made by DEV & MANAN SULYA
+ * General-Purpose AI with Memory + Web Search
  *****************************************************/
 
 const express = require("express");
@@ -27,56 +27,62 @@ function saveMemory(memory) {
   fs.writeFileSync(memoryFile, JSON.stringify(memory, null, 2));
 }
 
-/* ================= Free Internet Search ================= */
-async function searchInternet(question) {
-  const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(
-    question
-  )}&format=json&no_html=1&skip_disambig=1`;
-
+/* ================= AI Logic ================= */
+async function webSearch(query) {
   try {
-    const response = await fetch(url); // ✅ Native fetch (Node 22)
-    const data = await response.json();
+    const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(
+      query
+    )}&format=json&no_html=1`;
 
-    if (data.AbstractText) return data.AbstractText;
-    if (data.Answer) return data.Answer;
+    const res = await fetch(url);
+    const data = await res.json();
 
-    return `I found information related to "${question}", but no short summary was available.`;
+    return (
+      data.AbstractText ||
+      data.Heading ||
+      "I searched the web but couldn't find a clear answer."
+    );
   } catch (err) {
-    return "I couldn't access the internet right now.";
+    return "Web search failed.";
   }
 }
 
-/* ================= AI Endpoint ================= */
+/* ================= API ================= */
 app.post("/ask", async (req, res) => {
   const { question } = req.body;
-
   if (!question) {
-    return res.json({ answer: "Please ask something 🙂" });
+    return res.json({ answer: "Please ask something." });
   }
 
   const memory = readMemory();
 
-  // Use learned memory
+  // If already learned
   if (memory[question]) {
-    return res.json({ answer: memory[question] });
+    return res.json({
+      answer: memory[question] + " (from memory)"
+    });
   }
 
-  // Search internet
-  const answer = await searchInternet(question);
+  // Search web
+  const webAnswer = await webSearch(question);
 
-  // Learn
-  memory[question] = answer;
+  const finalAnswer =
+    webAnswer ||
+    `I am learning. I don't know much yet about "${question}".`;
+
+  // Save learning
+  memory[question] = finalAnswer;
   saveMemory(memory);
 
-  res.json({ answer });
+  res.json({ answer: finalAnswer });
 });
 
-/* ================= Render Fix ================= */
+/* ================= Fallback ================= */
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-/* ================= Start Server ================= */
+/* ================= Start ================= */
 app.listen(PORT, () => {
-  console.log("Macro AI Server running on port", PORT);
+  console.log("Macro AI running on port", PORT);
 });

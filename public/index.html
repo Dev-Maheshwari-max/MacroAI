@@ -1,138 +1,80 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>MacroAI Chat</title>
-  <style>
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, #667eea, #764ba2);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-      color: #333;
-    }
-
-    .chat-container {
-      width: 400px;
-      max-width: 90%;
-      background: #fff;
-      border-radius: 15px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    #chatBox {
-      flex: 1;
-      padding: 20px;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      background: #f9f9f9;
-    }
-
-    .message {
-      padding: 10px 15px;
-      border-radius: 20px;
-      max-width: 80%;
-      word-wrap: break-word;
-    }
-
-    .user {
-      background-color: #4a90e2;
-      color: white;
-      align-self: flex-end;
-    }
-
-    .ai {
-      background-color: #e0e0e0;
-      color: black;
-      align-self: flex-start;
-    }
-
-    .input-area {
-      display: flex;
-      padding: 15px;
-      border-top: 1px solid #ccc;
-      background: #fff;
-    }
-
-    #userInput {
-      flex: 1;
-      padding: 10px 15px;
-      border-radius: 25px;
-      border: 1px solid #ccc;
-      outline: none;
-      font-size: 16px;
-    }
-
-    #sendBtn {
-      margin-left: 10px;
-      padding: 10px 20px;
-      background: #4a90e2;
-      color: white;
-      border: none;
-      border-radius: 25px;
-      cursor: pointer;
-      font-size: 16px;
-      transition: background 0.3s;
-    }
-
-    #sendBtn:hover {
-      background: #357ABD;
-    }
-  </style>
+<meta charset="UTF-8">
+<title>MacroAI</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', sans-serif; background: #0f111a; color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; }
+  .chat-container { width: 400px; max-width: 95%; background: #1a1c2a; border-radius: 15px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+  #chatBox { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
+  .message { padding: 12px 20px; border-radius: 20px; max-width: 75%; line-height: 1.4; word-wrap: break-word; }
+  .user { align-self: flex-end; background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; }
+  .ai { align-self: flex-start; background: #2a2c3b; color: #fff; }
+  .input-area { display: flex; padding: 15px; border-top: 1px solid #333; background: #1a1c2a; }
+  #userInput { flex: 1; padding: 12px 20px; border-radius: 25px; border: none; outline: none; font-size: 16px; background: #2a2c3b; color: #fff; }
+  #sendBtn { margin-left: 10px; padding: 12px 20px; border-radius: 25px; border: none; background: #667eea; cursor: pointer; font-size: 16px; transition: background 0.3s; color: #fff; }
+  #sendBtn:hover { background: #5a67d8; }
+  .typing { font-style: italic; opacity: 0.7; }
+</style>
 </head>
 <body>
-  <div class="chat-container">
-    <div id="chatBox"></div>
-    <div class="input-area">
-      <input type="text" id="userInput" placeholder="Type your message..." />
-      <button id="sendBtn">Send</button>
-    </div>
+<div class="chat-container">
+  <div id="chatBox"></div>
+  <div class="input-area">
+    <input type="text" id="userInput" placeholder="Ask me anything..." />
+    <button id="sendBtn">Send</button>
   </div>
+</div>
 
-  <script>
-    const chatBox = document.getElementById("chatBox");
-    const userInput = document.getElementById("userInput");
-    const sendBtn = document.getElementById("sendBtn");
+<script>
+const chatBox = document.getElementById("chatBox");
+const userInput = document.getElementById("userInput");
+const sendBtn = document.getElementById("sendBtn");
 
-    function appendMessage(sender, text) {
-      const msg = document.createElement("div");
-      msg.classList.add("message", sender);
-      msg.textContent = text;
-      chatBox.appendChild(msg);
-      chatBox.scrollTop = chatBox.scrollHeight;
-    }
+function appendMessage(sender, text) {
+  const msg = document.createElement("div");
+  msg.classList.add("message", sender);
+  msg.textContent = text;
+  chatBox.appendChild(msg);
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
 
-    async function sendMessage() {
-      const message = userInput.value.trim();
-      if (!message) return;
-      appendMessage("user", message);
-      userInput.value = "";
+function appendTyping() {
+  const typing = document.createElement("div");
+  typing.classList.add("message", "ai", "typing");
+  typing.textContent = "MacroAI is typing...";
+  chatBox.appendChild(typing);
+  chatBox.scrollTop = chatBox.scrollHeight;
+  return typing;
+}
 
-      try {
-        const res = await fetch("/api/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message })
-        });
-        const data = await res.json();
-        appendMessage("ai", data.reply);
-      } catch (err) {
-        appendMessage("ai", "MacroAI: Error contacting server.");
-      }
-    }
+async function sendMessage() {
+  const message = userInput.value.trim();
+  if (!message) return;
+  appendMessage("user", message);
+  userInput.value = "";
 
-    sendBtn.addEventListener("click", sendMessage);
-    userInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") sendMessage();
+  const typing = appendTyping();
+
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message })
     });
-  </script>
+    const data = await res.json();
+    typing.remove();
+    appendMessage("ai", data.reply);
+  } catch (err) {
+    typing.remove();
+    appendMessage("ai", "MacroAI: Error contacting server.");
+  }
+}
+
+sendBtn.addEventListener("click", sendMessage);
+userInput.addEventListener("keydown", (e) => { if (e.key === "Enter") sendMessage(); });
+</script>
 </body>
 </html>

@@ -22,41 +22,48 @@ app.get("/", (req, res) => {
 app.post("/api/chat", async (req, res) => {
   const { message } = req.body;
 
-  if (!message || message.trim() === "") {
-    return res.status(400).json({ error: "Message is required" });
+  if (!message || !message.trim()) {
+    return res.json({ reply: "Please ask a valid question." });
   }
 
   try {
-    // Clean the query
-    const cleanQuery = message
-      .trim()
-      .replace(/\s+/g, "_")      // Replace spaces with underscores for Wikipedia
-      .replace(/[^a-zA-Z0-9_]/g, ""); // Remove special characters
+    // 1️⃣ SEARCH Wikipedia
+    const searchUrl =
+      "https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=" +
+      encodeURIComponent(message) +
+      "&format=json";
 
-    const wikiUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(cleanQuery)}`;
+    const searchRes = await axios.get(searchUrl);
+    const results = searchRes.data.query.search;
 
-    const response = await axios.get(wikiUrl, { timeout: 5000 }); // Add timeout
-    const data = response.data;
-
-    let reply;
-
-    if (data.extract) {
-      reply = data.extract;
-    } else {
-      reply =
-        "I couldn't find information on that topic. Please try a slightly different query.";
+    if (!results || results.length === 0) {
+      return res.json({
+        reply: "I couldn't find information on that topic."
+      });
     }
 
-    res.json({ reply });
-  } catch (error) {
-    console.error(error.message);
+    // 2️⃣ Get best page title
+    const pageTitle = results[0].title;
+
+    // 3️⃣ Fetch summary
+    const summaryUrl =
+      "https://en.wikipedia.org/api/rest_v1/page/summary/" +
+      encodeURIComponent(pageTitle);
+
+    const summaryRes = await axios.get(summaryUrl);
+
     res.json({
-      reply:
-        "I encountered an error while fetching information. Please try again with a different query.",
+      reply: summaryRes.data.extract || "No summary available."
+    });
+
+  } catch (err) {
+    console.error(err.message);
+    res.json({
+      reply: "Wikipedia service is temporarily unavailable. Try again."
     });
   }
 });
 
 app.listen(PORT, () => {
-  console.log(`MacroAI server is running on port ${PORT}`);
+  console.log(`✅ MacroAI running on port ${PORT}`);
 });

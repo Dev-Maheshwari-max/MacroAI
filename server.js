@@ -1,24 +1,15 @@
 // server.js
 import express from "express";
 import cors from "cors";
-import path from "path";
-import { fileURLToPath } from "url";
-
-// Setup __dirname for ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Enable CORS so frontend can call API
+// Enable CORS so frontend or Postman can call the API
 app.use(cors());
 
-// Middleware to parse JSON
+// Parse JSON bodies
 app.use(express.json());
-
-// Serve static files (optional)
-app.use(express.static(path.join(__dirname, "public")));
 
 // Root route
 app.get("/", (req, res) => {
@@ -29,7 +20,7 @@ app.get("/", (req, res) => {
 app.post("/api/chat", (req, res) => {
   const { message } = req.body;
 
-  if (!message) {
+  if (!message || message.trim() === "") {
     return res.status(400).json({ error: "Message is required" });
   }
 
@@ -37,13 +28,16 @@ app.post("/api/chat", (req, res) => {
   let reply;
 
   if (lowerMessage.includes("elon musk")) {
-    reply = "Elon Musk is a technology entrepreneur, engineer, and investor. He is the CEO of SpaceX and Tesla, and is known for his work in space exploration, electric vehicles, and renewable energy.";
+    reply =
+      "Elon Musk is a technology entrepreneur, engineer, and investor. He is the CEO of SpaceX and Tesla, and is known for his work in space exploration, electric vehicles, and renewable energy.";
   } else if (lowerMessage.includes("who are you")) {
-    reply = "I am MacroAI, your professional AI assistant designed to provide accurate and clear information.";
+    reply =
+      "I am MacroAI, your professional AI assistant designed to provide accurate and clear information.";
   } else if (lowerMessage.includes("hello") || lowerMessage.includes("hi")) {
     reply = "Hello! How can I assist you today?";
   } else {
-    reply = "I’m here to help! Could you please provide more details or ask a specific question?";
+    reply =
+      "I’m here to help! Could you please provide more details or ask a specific question?";
   }
 
   res.json({ reply });

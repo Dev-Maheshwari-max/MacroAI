@@ -16,12 +16,11 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-// Root route
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public/index.html"));
 });
 
-// Chat endpoint
+// Chat endpoint fetching from Wikipedia
 app.post("/api/chat", async (req, res) => {
   const { message } = req.body;
 

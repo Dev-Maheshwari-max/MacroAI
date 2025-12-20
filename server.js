@@ -1,65 +1,45 @@
-import express from "express";
+const express = require("express");
 
 const app = express();
 app.use(express.json());
 
-// --------------------
-// Root check (important for Render)
-// --------------------
 app.get("/", (req, res) => {
   res.send("✅ MacroAI server is running");
 });
 
-// --------------------
-// Ask endpoint
-// --------------------
 app.post("/ask", async (req, res) => {
   try {
     const question = req.body.question;
 
-    if (!question || question.trim() === "") {
+    if (!question) {
       return res.json({ answer: "Please ask a valid question." });
     }
 
-    // Wikipedia search API (FREE)
-    const searchUrl =
+    const url =
       "https://en.wikipedia.org/api/rest_v1/page/summary/" +
       encodeURIComponent(question);
 
-    const response = await fetch(searchUrl, {
+    const response = await fetch(url, {
       headers: { "User-Agent": "MacroAI/1.0" }
     });
 
     if (!response.ok) {
       return res.json({
-        answer: "I couldn't find a reliable answer yet. Try rephrasing the question."
+        answer: "I couldn't find a reliable answer yet. Try rephrasing."
       });
     }
 
     const data = await response.json();
 
-    if (data.extract) {
-      return res.json({
-        answer: data.extract
-      });
-    } else {
-      return res.json({
-        answer: "I couldn't find a reliable answer yet. Try rephrasing the question."
-      });
-    }
-  } catch (error) {
-    console.error("Error:", error);
     res.json({
-      answer: "Error reaching the internet. Please try again."
+      answer: data.extract || "No clear answer found."
     });
+  } catch (err) {
+    res.json({ answer: "Internet error. Try again." });
   }
 });
 
-// --------------------
-// REQUIRED for Render
-// --------------------
 const PORT = process.env.PORT || 3000;
-
 app.listen(PORT, () => {
-  console.log("🚀 MacroAI server running on port", PORT);
+  console.log("🚀 MacroAI running on port", PORT);
 });
